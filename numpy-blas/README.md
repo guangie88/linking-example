@@ -41,3 +41,12 @@ python -c "import numpy; numpy.__config__.show()"
 ```bash
 time python -c "import numpy as np; n = 2048; P = np.random.randint(0,10,(n,n)); np.linalg.eig(P @ P.T)"
 ```
+
+## Alternative benchmark command
+
+You will need the `hyperfine` benchmarking command, whose releases can be found
+here: <https://github.com/sharkdp/hyperfine/releases>.
+
+```bash
+hyperfine 'python -c "import numpy as np; n = 1024; P = np.random.randint(0,10,(n,n)); np.linalg.eig(P @ P.T)"'
+```
