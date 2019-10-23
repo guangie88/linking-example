@@ -30,7 +30,7 @@ problem.
 Run the following to generate the shared library and timing:
 
 ```bash
-cc -fPIC -shared -o lib/libfib.so fib_rec.c
+cc -fPIC -shared -o lib/libfib.so -lm fib_rec.c  # -lm links to libm.so
 time ./main.py 46
 ```
 
@@ -52,7 +52,7 @@ value.
 Run the following to generate the shared library and timing:
 
 ```bash
-cc -fPIC -shared -o lib/libfib.so fib_smart.c
+cc -fPIC -shared -o lib/libfib.so -lm fib_smart.c  # -lm links to libm.so
 time ./main.py 46
 ```
 

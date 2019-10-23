@@ -5,11 +5,11 @@ WORKDIR /app
 
 RUN set -euo pipefail && \
     apt-get update; \
-    apt-get install -y --no-install-recommends gcc libc-dev; \
+    apt-get install -y --no-install-recommends gcc golang libc-dev; \
     rm -rf /var/lib/apt/lists/*; \
     :
 
 RUN mkdir -p ./lib
-COPY *.c main.py ./
+COPY *.c *.go *.py ./
 
 ENTRYPOINT ["bash"]
