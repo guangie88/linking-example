@@ -18,7 +18,8 @@ If you prefer to use a Docker set-up, you can run an interactive bash shell with
 all the above dependencies:
 
 ```bash
-docker build . -t linking-example-cffi && docker run --rm -it linking-example-cffi
+docker build . -t linking-example-cffi && \
+docker run --rm -it --name linking-example-cffi linking-example-cffi
 ```
 
 ## Dynamic Loading (Part 1)
@@ -39,7 +40,7 @@ Run the following to generate the shared library and timing:
 
 ```bash
 cc -fPIC -shared -o lib/libfib.so fib_rec.c
-time ./main.py 46
+time ./main_dynload.py 46
 ```
 
 You should see output that looks like the following:
@@ -61,7 +62,7 @@ Run the following to generate the shared library and timing:
 
 ```bash
 cc -fPIC -shared -o lib/libfib.so -lm fib_smart.c  # -lm links to libm.so
-time ./main.py 46
+time ./main_dynload.py 46
 ```
 
 You should see output that looks like the following:
@@ -73,6 +74,52 @@ real    0m0.049s
 user    0m0.037s
 sys     0m0.012s
 ```
+
+### Repeat dynamic loading but for C
+
+C can use `dlopen`, `dlsym` and `dlclose` to perform the same thing as seen in
+the above Python script run.
+
+First we need to compile and link `main_dynload.c` to generate an executable
+`main`. Note that we need to link against `libdl.so` in order to use the
+`dlopen` symbol as seen above.
+
+```bash
+cc main_dynload.c -ldl -o main
+```
+
+Before running the generated `main` program, run the following to check the
+linking in `main`:
+
+```bash
+ldd main
+```
+
+You should see something like this:
+
+```bash
+        linux-vdso.so.1 (0x00007ffd564b8000)
+        libdl.so.2 => /lib/x86_64-linux-gnu/libdl.so.2 (0x00007f0a373fd000)
+        libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f0a3723c000)
+        /lib64/ld-linux-x86-64.so.2 (0x00007f0a3740c000)
+```
+
+Note that `libfib.so` is not listed as part of the linking relationship, despite
+the source code dynamically loading the shared library.
+
+Now run the program like this:
+
+```bash
+cc -fPIC -shared -o lib/libfib.so fib_rec.c
+time ./main 46
+```
+
+```bash
+cc -fPIC -shared -o lib/libfib.so -lm fib_smart.c  # -lm links to libm.so
+time ./main 46
+```
+
+Both the outputs should be similar to the Python counterparts.
 
 ## Dynamic Linking (Part 2)
 
@@ -108,7 +155,8 @@ To check the dynamic linking performed on the generated `main` executable, run
         /lib64/ld-linux-x86-64.so.2 (0x00007fe927c8e000)
 ```
 
-Note that `main` is dependent on our created `libfib.so` shared library.
+Note that `main` is now shown to be dependent on our created `libfib.so` shared
+library.
 
 Simply run
 
@@ -166,3 +214,54 @@ cc main.c fib_smart.c -lm -static -o main
 
 to build and statically link against `fib_smart` object (and `libm.a`) to get
 a pure statically linked `main`.
+
+Now if we check the dynamic linking in the program like this:
+
+```bash
+ldd main
+```
+
+We should see:
+
+```bash
+        not a dynamic executable
+```
+
+Which is correct, because we have just statically linked the `main` program, so
+all the symbol implementations will be subsumed into this single executable.
+
+Simply run
+
+```bash
+./main 10
+```
+
+to run and see the effect.
+
+If you are running in Docker container, you may perform the next few steps to
+show that the executable is indeed statically linked and portable across other
+Linux distros.
+
+Do not terminate the current Docker session. Open another terminal, and run the
+following in your host shell:
+
+```bash
+docker cp linking-example-cffi:/app/main ./
+./main 10
+```
+
+You can try running this same executable in two other Linux distros:
+
+#### Statically linked executable in Alpine
+
+```bash
+docker run --rm -it -v "$(pwd)/main:/main" alpine:3.10
+./main 10  # In the Docker shell
+```
+
+#### Statically linked executable in super old CentOS
+
+```bash
+docker run --rm -it -v "$(pwd)/main:/main" centos:5
+./main 10  # In the Docker shell
+```
