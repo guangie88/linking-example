@@ -11,6 +11,7 @@ typically means you need to install the following from `apt`:
 
 - python3
 - gcc
+- golang
 - libc-dev
 
 If you prefer to use a Docker set-up, you can run an interactive bash shell with
@@ -20,7 +21,14 @@ all the above dependencies:
 docker build . -t linking-example-cffi && docker run --rm -it linking-example-cffi
 ```
 
-## Benchmarks
+## Dynamic Loading (Part 1)
+
+This section explores the idea of performing dynamic loading from Python script
+to call into C-based shared library.
+
+This is the most dynamic way to call an external executable (shared library),
+but also the most haphazard way to do so, which should be avoided as much as
+possible in practical scenarios.
 
 ### `fib_rec.c`
 
@@ -64,3 +72,97 @@ fib(46): 1836311903
 real    0m0.049s
 user    0m0.037s
 sys     0m0.012s
+```
+
+## Dynamic Linking (Part 2)
+
+This section explores the idea of performing dynamic linking during link-time
+and is only applicable to compilable (and link-able) source code, such as Go and
+C.
+
+First perform the step in [`fib_smart.c`](#fib_smart.c) first to call into
+C-based shared library.
+
+Note that actually we can also opt to use the shared library created by step
+[`fib_rec.c`](#fib_rec.c).
+
+### Go-based FFI via Dynamic Linking
+
+Simply run
+
+```bash
+go build main.go
+```
+
+to build the Go main.
+
+To check the dynamic linking performed on the generated `main` executable, run
+
+```bash
+> ldd main
+        linux-vdso.so.1 (0x00007ffe86bfb000)
+        libfib.so => /app/./lib/libfib.so (0x00007fe927c87000)
+        libpthread.so.0 => /lib/x86_64-linux-gnu/libpthread.so.0 (0x00007fe927c63000)
+        libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007fe927aa2000)
+        libm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007fe92791f000)
+        /lib64/ld-linux-x86-64.so.2 (0x00007fe927c8e000)
+```
+
+Note that `main` is dependent on our created `libfib.so` shared library.
+
+Simply run
+
+```bash
+./main 10
+```
+
+to run and see the effect.
+
+### C Dynamic Linking
+
+Simply run
+
+```bash
+cc main.c -Llib -lfib -Wl,-rpath='$ORIGIN/lib' -o main
+```
+
+Similarly, run
+
+```bash
+> ldd main
+        linux-vdso.so.1 (0x00007ffc857ef000)
+        libfib.so => /app/./lib/libfib.so (0x00007f7b95ce9000)
+        libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f7b95b25000)
+        libm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007f7b959a2000)
+        /lib64/ld-linux-x86-64.so.2 (0x00007f7b95cf5000)
+```
+
+to check the dynamic linking on the main program.
+
+Simply run
+
+```bash
+./main 10
+```
+
+to run and see the effect.
+
+## Static Linking (Part 3)
+
+This section explores the idea of performing static linking during link-time
+and is only applicable to compilable (and link-able) source code, such as Go and
+C.
+
+There is no need to build the shared library in either
+[`fib_smart.c`](#fib_smart.c) or [`fib_rec.c`](#fib_rec.c).
+
+### C Static Linking
+
+Simply run
+
+```bash
+cc main.c fib_smart.c -lm -static -o main
+```
+
+to build and statically link against `fib_smart` object (and `libm.a`) to get
+a pure statically linked `main`.
