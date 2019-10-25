@@ -146,7 +146,12 @@ to build the Go main.
 To check the dynamic linking performed on the generated `main` executable, run
 
 ```bash
-> ldd main
+ldd main
+```
+
+You should see something like this:
+
+```bash
         linux-vdso.so.1 (0x00007ffe86bfb000)
         libfib.so => /app/./lib/libfib.so (0x00007fe927c87000)
         libpthread.so.0 => /lib/x86_64-linux-gnu/libpthread.so.0 (0x00007fe927c63000)
@@ -174,18 +179,21 @@ Simply run
 cc main.c -Llib -lfib -Wl,-rpath='$ORIGIN/lib' -o main
 ```
 
-Similarly, run
+Similarly, run below command to check the dynamic linking on the main program:
 
 ```bash
-> ldd main
+ldd main
+```
+
+You should see something like this:
+
+```bash
         linux-vdso.so.1 (0x00007ffc857ef000)
         libfib.so => /app/./lib/libfib.so (0x00007f7b95ce9000)
         libc.so.6 => /lib/x86_64-linux-gnu/libc.so.6 (0x00007f7b95b25000)
         libm.so.6 => /lib/x86_64-linux-gnu/libm.so.6 (0x00007f7b959a2000)
         /lib64/ld-linux-x86-64.so.2 (0x00007f7b95cf5000)
 ```
-
-to check the dynamic linking on the main program.
 
 Simply run
 
@@ -215,13 +223,13 @@ cc main.c fib_smart.c -lm -static -o main
 to build and statically link against `fib_smart` object (and `libm.a`) to get
 a pure statically linked `main`.
 
-Now if we check the dynamic linking in the program like this:
+Now to check the dynamic linking in the program, run this:
 
 ```bash
 ldd main
 ```
 
-We should see:
+You should see:
 
 ```bash
         not a dynamic executable
